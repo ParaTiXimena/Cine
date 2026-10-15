@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Amor de cine — para Ximena</title>
+<meta name="description" content="Una función privada, de una sola butaca.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Caveat:wght@500;700&family=Figtree:wght@300;400;600;700;800&display=swap">
+<style>
+  :root {
+    --noche: #06060a;
+    --terciopelo: #4a0d16;
+    --terciopelo-2: #7d1725;
+    --oro: #d8b25f;
+    --oro-claro: #f7e7b4;
+    --oro-tenue: #8d7437;
+    --marfil: #f5efe4;
+    --humo: #a79f93;
+    --display: "Playfair Display", Georgia, serif;
+    --serif: "Cormorant Garamond", Georgia, serif;
+    --mano: "Caveat", cursive;
+    --sans: "Figtree", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--noche); color: var(--marfil);
+    font-family: var(--sans); overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  /* ================= capas de cine ================= */
+  .capa { position: fixed; inset: 0; pointer-events: none; }
+  #fondo { z-index: 0; overflow: hidden; }
+  #fondo .campo {
+    position: absolute; inset: -12%;
+    background:
+      radial-gradient(60% 50% at 30% 28%, rgba(125,23,37,.34), transparent 70%),
+      radial-gradient(55% 45% at 75% 68%, rgba(216,178,95,.14), transparent 72%),
+      radial-gradient(90% 90% at 50% 50%, #0d0a10, #050507 80%);
+    animation: respirar 26s ease-in-out infinite alternate;
+    transition: background 2.4s ease;
+  }
+  body.tema-noche #fondo .campo {
+    background:
+      radial-gradient(62% 52% at 28% 30%, rgba(74,45,120,.36), transparent 70%),
+      radial-gradient(55% 45% at 78% 66%, rgba(43,92,130,.24), transparent 74%),
+      radial-gradient(90% 90% at 50% 50%, #0b0a12, #040406 80%);
+  }
+  @keyframes respirar {
+    from { transform: scale(1) translate(0,0); }
+    to { transform: scale(1.14) translate(-2%, -1.5%); }
+  }
+  #polvo { z-index: 1; }
+  .grano {
+    z-index: 40; opacity: .055;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: granear .35s steps(2) infinite;
+  }
+  @keyframes granear { 0%{transform:translate(0,0)} 50%{transform:translate(-3%,2%)} 100%{transform:translate(2%,-3%)} }
+  .vineta { z-index: 41; background: radial-gradient(120% 90% at 50% 46%, transparent 44%, rgba(0,0,0,.8) 100%); }
+  .parpadeo { z-index: 42; background: rgba(255,245,220,.03); animation: flick 5s steps(3) infinite; }
+  @keyframes flick { 0%,92%,100%{opacity:.22} 94%{opacity:.6} 96%{opacity:.1} }
+
+  .barra-cine { position: fixed; left: 0; right: 0; height: 7vh; background: #000; z-index: 45; transition: height .9s cubic-bezier(.76,0,.24,1); }
+  .barra-cine.arriba { top: 0; } .barra-cine.abajo { bottom: 0; }
+  body.sin-barras .barra-cine { height: 0; }
+
+  /* ================= intro ================= */
+  #intro { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; }
+  .cortina {
+    position: absolute; top: 0; bottom: 0; width: 52%;
+    background: repeating-linear-gradient(90deg, var(--terciopelo) 0 18px, var(--terciopelo-2) 18px 38px, var(--terciopelo) 38px 56px), var(--terciopelo);
+    box-shadow: inset 0 0 140px rgba(0,0,0,.8);
+    transition: transform 2.4s cubic-bezier(.76,0,.24,1);
+  }
+  .cortina.izq { left: 0; } .cortina.der { right: 0; }
+  #intro.abierto .cortina.izq { transform: translateX(-103%); }
+  #intro.abierto .cortina.der { transform: translateX(103%); }
+  #intro.abierto .marquesina { opacity: 0; transform: scale(.95); }
+  #intro.fuera { opacity: 0; pointer-events: none; transition: opacity .7s ease .9s; }
+
+  .marquesina {
+    position: relative; z-index: 2; text-align: center; max-width: min(520px, 100%);
+    padding: 26px 22px; border: 3px solid var(--oro); border-radius: 12px;
+    background: rgba(8,6,8,.93); box-shadow: 0 0 70px rgba(216,178,95,.28), inset 0 0 50px rgba(0,0,0,.7);
+    transition: opacity .6s ease, transform .6s ease;
+    max-height: 92vh; overflow-y: auto;
+  }
+  .focos { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+  .focos i { width: 8px; height: 8px; border-radius: 50%; background: var(--oro-claro); box-shadow: 0 0 10px var(--oro); animation: parpadea 1.6s infinite; }
+  .focos i:nth-child(2n){animation-delay:.2s} .focos i:nth-child(3n){animation-delay:.45s}
+  @keyframes parpadea { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .ahora { font: 600 10.5px/1 var(--sans); letter-spacing: .4em; text-transform: uppercase; color: var(--oro); margin: 0; }
+  .marquesina h1 { margin: 10px 0 4px; font-family: var(--display); font-weight: 700; font-size: clamp(2.3rem,9.5vw,3.8rem); line-height: .95; }
+  .marquesina .sub { font-family: var(--serif); font-style: italic; color: var(--humo); margin: 0 0 14px; font-size: clamp(.95rem,3.5vw,1.15rem); }
+  .nota { font-size: 12.5px; color: var(--humo); margin: 12px 0 0; }
+  .btn {
+    appearance: none; border: 0; border-radius: 999px; padding: 15px 26px;
+    background: linear-gradient(180deg, var(--oro-claro), var(--oro)); color: #2a1a05;
+    font-weight: 600; letter-spacing: .04em; box-shadow: 0 12px 30px -12px rgba(216,178,95,.9);
+    transition: transform .15s ease, filter .15s ease; margin-top: 10px;
+  }
+  .btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+  .btn:focus-visible { outline: 2px solid var(--marfil); outline-offset: 3px; }
+  .btn.chico { padding: 9px 16px; font-size: 13px; background: rgba(10,9,12,.75); color: var(--oro-claro); border: 1px solid var(--oro-tenue); box-shadow: none; }
+
+  /* ================= cuenta atrás ================= */
+  #leader { position: fixed; inset: 0; z-index: 70; display: none; place-items: center; background: #0a0a0c; }
+  #leader.on { display: grid; }
+  .leader-circ { position: relative; width: min(46vmin, 300px); aspect-ratio: 1; border: 2px solid rgba(245,239,228,.35); border-radius: 50%; display: grid; place-items: center; }
+  .leader-circ::before, .leader-circ::after { content: ""; position: absolute; background: rgba(245,239,228,.28); }
+  .leader-circ::before { left: 0; right: 0; height: 1px; } .leader-circ::after { top: 0; bottom: 0; width: 1px; }
+  .leader-sweep { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(rgba(245,239,228,.14) 0turn, transparent .98turn); animation: barrer 1s linear infinite; }
+  @keyframes barrer { to { transform: rotate(1turn); } }
+  .leader-num { font-family: var(--display); font-size: min(26vmin, 170px); line-height: 1; }
+
+  /* ================= letra ================= */
+  #escenario {
+    position: fixed; left: 0; right: 0; top: 7vh; bottom: 0; z-index: 10;
+    display: grid; align-content: center; justify-items: start;
+    padding: 4vh clamp(20px, 7vw, 90px) calc(140px + 7vh);
+  }
+  #lineas { width: 100%; max-width: 860px; display: grid; gap: clamp(14px, 2.6vh, 26px); }
+  .linea {
+    font-family: var(--sans); font-weight: 800; letter-spacing: -.01em;
+    font-size: clamp(1.45rem, 5.4vw, 2.9rem); line-height: 1.2; text-align: left;
+    color: rgba(245,239,228,.3); margin: 0;
+    transition: color .8s ease, transform .8s ease;
+    transform: scale(.985); transform-origin: left center;
+  }
+  .linea.activa { color: #fff; transform: scale(1); }
+  .linea.cita { font-weight: 700; font-style: italic; color: rgba(247,231,180,.35); }
+  .linea.activa.cita { color: var(--oro-claro); }
+  .linea.grande { font-size: clamp(1.75rem, 6.6vw, 3.4rem); }
+  .linea .w { display: inline-block; margin-right: .28em; opacity: 0; transform: translateY(16px); filter: blur(7px); }
+  .linea.entrada .w { animation: entra .8s cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes entra { to { opacity: 1; transform: none; filter: none; } }
+
+  /* claqueta */
+  #slate { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; opacity: 0; pointer-events: none; }
+  #slate.on { animation: slate 1.8s ease forwards; }
+  @keyframes slate { 0%{opacity:0} 10%{opacity:1} 78%{opacity:1} 100%{opacity:0} }
+  .claqueta { width: min(460px, 86vw); background: #0d0d10; border: 2px solid rgba(245,239,228,.5); box-shadow: 0 30px 80px rgba(0,0,0,.8); }
+  .claqueta .palo { height: 32px; background: repeating-linear-gradient(115deg, #f3eee3 0 26px, #141418 26px 52px); transform-origin: left center; animation: clap .5s cubic-bezier(.3,1.4,.5,1); }
+  @keyframes clap { 0%{transform:rotate(-14deg)} 60%{transform:rotate(2deg)} 100%{transform:rotate(0)} }
+  .claqueta .cuerpo { padding: 16px 18px; display: grid; gap: 5px; text-align: left; }
+  .claqueta .et { font: 600 10px/1 var(--sans); letter-spacing: .32em; text-transform: uppercase; color: var(--humo); }
+  .claqueta .tit { font-family: var(--display); font-size: clamp(1.1rem, 4.4vw, 1.6rem); }
+  .claqueta .meta { font: 600 11px/1 var(--sans); letter-spacing: .2em; color: var(--oro); text-transform: uppercase; }
+
+  /* boleto */
+  #boleto { position: fixed; inset: 0; z-index: 20; display: none; place-items: center; padding: 20px; }
+  #boleto.on { display: grid; }
+  .ticket {
+    position: relative; width: min(520px, 92vw); padding: 26px 28px; border-radius: 10px;
+    background: linear-gradient(135deg, #f8f1de, #e6d9bb); color: #2a1d10;
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,.95); transform: rotate(-1.5deg) scale(.86); opacity: 0;
+    animation: entraTicket .9s cubic-bezier(.2,.9,.2,1) forwards;
+  }
+  @keyframes entraTicket { to { opacity: 1; transform: rotate(-1.5deg) scale(1); } }
+  .ticket::before, .ticket::after { content:""; position:absolute; top:50%; width:26px; height:26px; margin-top:-13px; border-radius:50%; background: var(--noche); }
+  .ticket::before{left:-13px} .ticket::after{right:-13px}
+  .ticket .sello-t { font: 600 10px/1 var(--sans); letter-spacing: .34em; text-transform: uppercase; color: #8a6a20; }
+  .ticket h3 { font-family: var(--display); font-size: clamp(1.5rem,6.4vw,2.1rem); margin: 8px 0; }
+  .ticket p { margin: 0; font-size: 14px; line-height: 1.5; }
+  .ticket .fila { display: flex; justify-content: space-between; gap: 10px; border-top: 1px dashed rgba(42,29,16,.4); padding-top: 12px; margin-top: 14px; font-size: 12.5px; }
+  .ticket .fila b { display:block; font: 600 10px/1 var(--sans); letter-spacing:.14em; text-transform:uppercase; color:#8a6a20; }
+  .estampa {
+    position: absolute; right: 14px; bottom: 8px; transform: rotate(-16deg) scale(1.7); opacity: 0;
+    border: 3px solid #a3321f; color: #a3321f; border-radius: 6px; padding: 6px 12px;
+    font: 700 13px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase;
+    animation: sellar .5s cubic-bezier(.3,1.5,.4,1) 1.3s forwards;
+  }
+  @keyframes sellar { to { opacity: .85; transform: rotate(-16deg) scale(1); } }
+
+  /* final */
+  #final { position: fixed; inset: 0; z-index: 25; display: none; place-items: center; text-align: center; padding: 12vh 6vw 24vh; }
+  #final.on { display: grid; }
+  .teamo { font-family: var(--display); font-weight: 700; font-size: clamp(2.5rem, 12vw, 5.4rem); line-height: 1.05; text-shadow: 0 0 70px rgba(216,178,95,.45); }
+  .teamo .p { display: inline-block; white-space: nowrap; margin-right: .26em; }
+  .teamo .l { display: inline-block; opacity: 0; transform: translateY(26px); animation: letra 1s cubic-bezier(.2,.9,.2,1) forwards; }
+  @keyframes letra { to { opacity: 1; transform: none; } }
+  .teamo-sub { margin-top: 18px; font: 600 11px/1 var(--sans); letter-spacing: .34em; text-transform: uppercase; color: var(--oro); opacity: 0; animation: entra 1s ease 2.4s forwards; }
+  .firma-final { margin-top: 24px; font-family: var(--mano); font-size: clamp(1.4rem,5.6vw,2rem); color: var(--oro-claro); opacity: 0; animation: entra 1s ease 3s forwards; }
+
+  /* créditos */
+  #creditos { position: fixed; inset: 0; z-index: 26; display: none; justify-content: center; overflow: hidden; }
+  #creditos.on { display: flex; }
+  .rollo { text-align: center; padding-top: 100vh; animation: subir 34s linear forwards; }
+  @keyframes subir { to { transform: translateY(-200%); } }
+  .rollo .bloque { margin: 34px 0; }
+  .rollo .rol { font: 600 10px/1 var(--sans); letter-spacing: .34em; text-transform: uppercase; color: var(--oro); }
+  .rollo .nom { font-family: var(--display); font-size: clamp(1.2rem,4.6vw,1.8rem); margin-top: 8px; }
+  .rollo .fin { font-family: var(--display); font-style: italic; font-size: clamp(1.6rem,6vw,2.6rem); color: var(--oro-claro); margin-top: 60px; }
+
+  /* ================= cartelera final ================= */
+  #discos { position: fixed; inset: 0; z-index: 28; display: none; overflow-y: auto; padding: 86px 18px 60px; }
+  #discos.on { display: block; }
+  .discos-caja { max-width: 620px; margin: 0 auto; display: grid; gap: 16px; }
+  .discos-caja h2 { font-family: var(--display); font-weight: 500; font-size: clamp(1.7rem,6.4vw,2.6rem); margin: 0; text-align: center; }
+  .discos-caja .intro { text-align: center; color: var(--humo); font-size: 13.5px; margin: -6px 0 6px; }
+  .disco { border: 1px solid rgba(216,178,95,.22); border-radius: 14px; padding: 14px; background: rgba(12,10,14,.78); }
+  .disco h3 { font-family: var(--display); font-weight: 500; font-size: 1.15rem; margin: 0 0 2px; }
+  .disco .quien { font-size: 12px; color: var(--humo); margin: 0 0 10px; }
+  .disco iframe { width: 100%; border: 0; border-radius: 10px; display: block; }
+
+  /* ================= reproductor propio ================= */
+  #player {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(7vh + 12px);
+    z-index: 50; width: min(560px, calc(100vw - 24px));
+    display: grid; grid-template-columns: 54px 1fr auto; gap: 12px; align-items: center;
+    padding: 10px 14px 12px; border-radius: 14px;
+    background: rgba(13,11,15,.86); border: 1px solid rgba(216,178,95,.26);
+    backdrop-filter: blur(12px); box-shadow: 0 20px 50px -22px rgba(0,0,0,.95);
+    opacity: 0; transition: opacity .8s ease; pointer-events: none;
+  }
+  body.rodando #player { opacity: 1; pointer-events: auto; }
+  body.cartelera #player { display: none; }
+  .caratula {
+    width: 54px; height: 54px; border-radius: 8px; position: relative; overflow: hidden;
+    background: linear-gradient(145deg, #8d1d2c, #3b1018 60%, #1b0a0f);
+    display: grid; place-items: center; box-shadow: inset 0 0 18px rgba(0,0,0,.65);
+  }
+  .caratula::after {
+    content: ""; position: absolute; inset: -40%;
+    background: conic-gradient(from 0deg, transparent 0 70%, rgba(255,235,180,.22) 85%, transparent 100%);
+    animation: girar 7s linear infinite;
+  }
+  body.pausa .caratula::after, body.audio-parado .caratula::after { animation-play-state: paused; }
+  @keyframes girar { to { transform: rotate(1turn); } }
+  .caratula .disco-centro { width: 15px; height: 15px; border-radius: 50%; background: #0b0a0c; border: 2px solid rgba(247,231,180,.5); z-index: 2; }
+  .pl-txt { min-width: 0; }
+  .pl-txt .cancion { font-weight: 700; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl-txt .artista { font-size: 12px; color: var(--humo); }
+  .pl-barra { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin-top: 2px; }
+  .pl-barra .tiempo { font: 600 10.5px/1 var(--sans); color: var(--humo); font-variant-numeric: tabular-nums; }
+  .pl-pista { height: 4px; background: rgba(245,239,228,.16); border-radius: 3px; overflow: hidden; }
+  .pl-pista i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--oro), var(--oro-claro)); border-radius: 3px; }
+  .pl-boton {
+    width: 40px; height: 40px; border-radius: 50%; border: 0; display: grid; place-items: center;
+    background: var(--marfil); color: #11100f; font-size: 14px;
+  }
+  .pl-boton:hover { filter: brightness(1.08); }
+
+  /* ================= otros ================= */
+  #tiempo { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, var(--oro-tenue), var(--oro-claro)); z-index: 55; width: 0; transition: width .6s linear; }
+  #contador { position: fixed; z-index: 55; top: calc(7vh + 18px); left: 50%; transform: translateX(-50%); font: 600 10px/1 var(--sans); letter-spacing: .26em; color: var(--humo); opacity: 0; transition: opacity .6s ease; }
+  body.rodando #contador { opacity: 1; }
+  body.cartelera #contador, body.cartelera #tiempo { display: none; }
+  #repetir-fijo { position: fixed; z-index: 57; left: 50%; transform: translateX(-50%); top: calc(7vh + 12px); display: none; }
+  body.creditos #repetir-fijo, body.cartelera #repetir-fijo { display: inline-flex; }
+  body.cartelera #repetir-fijo { top: 18px; }
+  .aviso-pausa { position: fixed; inset: 0; z-index: 56; display: none; place-items: center; font-family: var(--display); font-size: clamp(1.6rem,6vw,2.6rem); color: rgba(245,239,228,.65); letter-spacing: .12em; pointer-events: none; }
+  body.pausa .aviso-pausa { display: grid; }
+
+  @media (max-width: 620px) {
+    #escenario { padding: 3vh 22px calc(170px + 7vh); }
+    #contador { top: auto; bottom: calc(7vh + 128px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    .linea .w, .teamo .l { opacity: 1 !important; transform: none !important; filter: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<audio id="audio" src="cancion.mp3" preload="auto" loop></audio>
+
+<div id="fondo" class="capa"><div class="campo"></div></div>
+<canvas id="polvo" class="capa"></canvas>
+<div class="capa grano"></div>
+<div class="capa vineta"></div>
+<div class="capa parpadeo"></div>
+<div class="barra-cine arriba"></div>
+<div class="barra-cine abajo"></div>
+<div id="tiempo"></div>
+
+<!-- ============ INTRO ============ -->
+<div id="intro">
+  <div class="cortina izq"></div>
+  <div class="cortina der"></div>
+  <div class="marquesina">
+    <div class="focos"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="ahora">Función única · una sola butaca</p>
+    <h1>Ximena</h1>
+    <p class="sub">un amor de cine, en cartelera desde el 22 de mayo</p>
+    <button class="btn" id="empezar" type="button">Comenzar la función</button>
+    <p class="nota">Ponte los audífonos: la música empieza sola 🎧</p>
+  </div>
+</div>
+
+<!-- ============ CUENTA ATRÁS ============ -->
+<div id="leader">
+  <div class="leader-circ"><div class="leader-sweep"></div><div class="leader-num" id="leader-num">3</div></div>
+</div>
+
+<!-- ============ LETRA ============ -->
+<main id="escenario"><div id="lineas"></div></main>
+
+<div id="slate">
+  <div class="claqueta">
+    <div class="palo"></div>
+    <div class="cuerpo">
+      <span class="et">Producción · nosotros dos</span>
+      <span class="tit" id="slate-tit">—</span>
+      <span class="meta" id="slate-meta">—</span>
+    </div>
+  </div>
+</div>
+
+<div id="boleto">
+  <div class="ticket">
+    <p class="sello-t">Cine privado · fila única</p>
+    <h3>préstame un beso</h3>
+    <p>Válido por una función entera con la única persona con la que quiero verla. No caduca, no se transfiere y no admite devoluciones.</p>
+    <div class="fila"><span><b>Butaca</b> A-1</span><span><b>Función</b> todas</span><span><b>Acompañante</b> yo</span></div>
+    <div class="estampa">admitida</div>
+  </div>
+</div>
+
+<div id="final">
+  <div>
+    <div class="teamo" id="teamo"></div>
+    <p class="teamo-sub">y es lo más sincero que tengo</p>
+    <p class="firma-final">— Aldair</p>
+  </div>
+</div>
+
+<div id="creditos">
+  <div class="rollo">
+    <div class="bloque"><p class="rol">Protagonista</p><p class="nom">Ximena</p></div>
+    <div class="bloque"><p class="rol">El que nunca se quiere ir</p><p class="nom">Aldair</p></div>
+    <div class="bloque"><p class="rol">Banda sonora</p><p class="nom">Jorge Cuéllar · HUMBE</p></div>
+    <div class="bloque"><p class="rol">Locaciones</p><p class="nom">Las gradas · la cafetería · tu salón</p></div>
+    <div class="bloque"><p class="rol">Vestuario</p><p class="nom">Tu uniforme de escolta · mi gorra</p></div>
+    <div class="bloque"><p class="rol">Efectos especiales</p><p class="nom">Tus bromas</p></div>
+    <div class="bloque"><p class="rol">Duración</p><p class="nom">Lo que tú quieras que dure</p></div>
+    <p class="fin">Continuará…</p>
+  </div>
+</div>
+
+<!-- ============ CARTELERA FINAL ============ -->
+<div id="discos">
+  <div class="discos-caja">
+    <h2>Tus canciones</h2>
+    <p class="intro">Las que te gustan a ti y ya se me pegaron a mí. Quédate aquí el rato que quieras.</p>
+
+    <div class="disco">
+      <h3>préstame un beso</h3>
+      <p class="quien">Jorge Cuéllar · tu favorita</p>
+      <iframe title="préstame un beso" style="height:152px" src="https://open.spotify.com/embed/album/2p8xAHHVC2G0CG1p6rwBfC?utm_source=generator&theme=0" loading="lazy" allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+    </div>
+
+    <div class="disco">
+      <h3>AMOR DE CINE</h3>
+      <p class="quien">HUMBE · la que le da nombre a todo esto</p>
+      <iframe title="AMOR DE CINE" style="height:152px" src="https://open.spotify.com/embed/track/0v9UztY5A12cJUsWD7PZzS?utm_source=generator&theme=0" loading="lazy" allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+    </div>
+
+    <div class="disco">
+      <h3>Jorge Cuéllar</h3>
+      <p class="quien">Todas sus canciones, para seguirle</p>
+      <iframe title="Jorge Cuéllar" style="height:352px" src="https://open.spotify.com/embed/artist/1QeeSvpw3S59dmsfFAgvGB?utm_source=generator&theme=0" loading="lazy" allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+    </div>
+
+    <div class="disco">
+      <h3>HUMBE</h3>
+      <p class="quien">Por si la noche se pone sentimental</p>
+      <iframe title="HUMBE" style="height:352px" src="https://open.spotify.com/embed/artist/1b7AEdUSudOQoZF5ebUxCL?utm_source=generator&theme=0" loading="lazy" allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REPRODUCTOR ============ -->
+<div id="player">
+  <div class="caratula"><span class="disco-centro"></span></div>
+  <div class="pl-txt">
+    <div class="cancion">préstame un beso</div>
+    <div class="artista">Jorge Cuéllar · sonando ahora</div>
+  </div>
+  <button class="pl-boton" id="pl-boton" type="button" title="Pausa">⏸</button>
+  <div class="pl-barra">
+    <span class="tiempo" id="pl-actual">0:00</span>
+    <span class="pl-pista"><i id="pl-prog"></i></span>
+    <span class="tiempo" id="pl-total">0:00</span>
+  </div>
+</div>
+
+<div id="contador">—</div>
+<button class="btn chico" id="repetir-fijo" type="button">Volver a verla</button>
+<div class="aviso-pausa">en pausa</div>
+
+<script>
+// ===================== guion =====================
+const GUION = [
+  { slate: "El estado", meta: "Escena 01 · 22 de mayo", lineas: [
+    "Todo empezó un 22 de mayo,",
+    "con un estado tuyo que decía",
+    "que a ti nadie te invitaba a nada.",
+    { t: "Yo contesté medio en broma.", c: "cita" },
+    { t: "Tú contestaste medio en broma.", c: "cita" },
+    "Y así, sin avisar, empezó todo esto."
+  ]},
+
+  { slate: "El café que nunca fue", meta: "Escena 02 · ese mismo día", lineas: [
+    "Te pregunté qué tanto te gustaba el café.",
+    { t: "«casi no tomo café…", c: "cita" },
+    { t: "pero podría hacer el sacrificio»", c: "cita" },
+    "Nunca nos tomamos ese café.",
+    { t: "Y aun así, de ahí salió todo lo demás.", c: "grande" }
+  ]},
+
+  { slate: "El día que nos hicimos novios", meta: "Escena 03 · un miércoles", lineas: [
+    "A las ocho de la mañana ya traía",
+    "tus chocolates y una rosa escondida en la chamarra.",
+    "Te busqué en la mañana y no pude.",
+    "Te busqué en la tarde y tampoco.",
+    "Pensé que nunca me iba a atrever.",
+    { t: "Y a las dos de la tarde, por fin.", c: "grande" },
+    { t: "«ay, pues déjame pensar…", c: "cita" },
+    { t: "sí, sí quiero»", c: "cita grande" },
+    "Ese día no me cabía la felicidad en el pecho."
+  ]},
+
+  { slate: "Las flores amarillas", meta: "Escena 04 · 21 de septiembre", noche: true, lineas: [
+    "Dos lirios y cuatro tulipanes. De papel.",
+    "Los cargué desde mi casa con toda la pena del mundo.",
+    "El agua se los llevó",
+    "y a ti te dolió no haberlos podido salvar.",
+    { t: "Ahí entendí que no eran las flores.", c: "grande" }
+  ]},
+
+  { slate: "El primero de todos", meta: "Escena 05 · mi primer beso", noche: true, lineas: [
+    "Eres mi primera novia.",
+    "Y fue mi primer beso.",
+    { t: "El primero… y el más bonito de todos.", c: "grande" },
+    "Y lo mejor es que no se gastó:",
+    { t: "cada vez que te beso me siento igual que esa vez.", c: "cita" }
+  ]},
+
+  { slate: "«Porque eras mío»", meta: "Escena 06 · una noche cualquiera", noche: true, lineas: [
+    "Jugaste a regalarme.",
+    "Me dijiste infiel entre besos.",
+    "Y acabaste diciendo:",
+    { t: "«pude hacerlo porque eras mío»", c: "cita grande" },
+    "Tú lo dijiste jugando.",
+    { t: "Yo me lo guardé en serio.", c: "grande" }
+  ]},
+
+  { ticket: true, slate: "Intermedio", meta: "Admisión · fila única", dur: 7000 },
+
+  { slate: "Escena final", meta: "Lo que no te he podido decir", lineas: [
+    "Contigo soy yo.",
+    "Con nadie más me pasa.",
+    "No tengo que medirme,",
+    "ni fingir que ando serio,",
+    "ni guardarme lo que siento.",
+    "Me gusta tu forma de querer,",
+    "aunque sea distinta a la mía.",
+    "No sé exactamente qué nombre ponerle a esto,",
+    "y no quiero adornarlo ni decir algo de lo que no esté seguro.",
+    { t: "Pero si me preguntas hoy…", c: "grande" }
+  ]},
+
+  { final: true, dur: 8600 },
+
+  { slate: "Lo último", meta: "Palabra de hombre nervioso", lineas: [
+    "No es fácil para mí decírtelo de frente.",
+    "Me gana el nervio.",
+    "Por eso te lo digo así.",
+    "No tienes que contestarme nada, ni hoy ni nunca.",
+    { t: "Solo quería que lo supieras tú, antes que nadie.", c: "cita" }
+  ]},
+
+  { creditos: true, dur: 34000 },
+  { cartelera: true }
+];
+
+// ===================== motor =====================
+const $ = s => document.querySelector(s);
+const audio = $("#audio");
+const lineasEl = $("#lineas"), slateEl = $("#slate"), boletoEl = $("#boleto");
+const finalEl = $("#final"), creditosEl = $("#creditos"), discosEl = $("#discos");
+const tiempoEl = $("#tiempo"), contadorEl = $("#contador");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const totalActos = GUION.length;
+
+let acto = 0, idxLinea = 0, pausado = false, enMarcha = false;
+let reloj = null, alTerminar = () => {}, inicio = 0, duracion = 0, restante = 0;
+
+function esperar(ms, cb) {
+  clearTimeout(reloj);
+  alTerminar = cb; duracion = ms; restante = ms; inicio = performance.now();
+  reloj = setTimeout(cb, ms);
+}
+
+function duracionDe(texto) {
+  const palabras = texto.split(/\s+/).length;
+  return Math.max(2900, Math.min(7000, 1900 + palabras * 380));
+}
+
+function pintarLinea(dato) {
+  const texto = typeof dato === "string" ? dato : dato.t;
+  const clases = typeof dato === "string" ? "" : (dato.c || "");
+  while (lineasEl.children.length >= 3) lineasEl.firstElementChild.remove();
+  const p = document.createElement("p");
+  p.className = "linea " + clases;
+  texto.split(" ").forEach((w, i) => {
+    const s = document.createElement("span");
+    s.className = "w"; s.textContent = w;
+    s.style.animationDelay = (i * 0.085) + "s";
+    p.appendChild(s);
+  });
+  [...lineasEl.children].forEach(c => c.classList.remove("activa"));
+  lineasEl.appendChild(p);
+  requestAnimationFrame(() => p.classList.add("activa", "entrada"));
+  return duracionDe(texto);
+}
+
+function limpiar() {
+  document.body.classList.remove("creditos", "cartelera");
+  lineasEl.innerHTML = "";
+  boletoEl.classList.remove("on");
+  finalEl.classList.remove("on");
+  creditosEl.classList.remove("on");
+  discosEl.classList.remove("on");
+}
+
+function correrActo() {
+  const a = GUION[acto];
+  if (!a) return;
+  limpiar();
+  document.body.classList.toggle("tema-noche", !!a.noche);
+  contadorEl.textContent = `ESCENA ${String(acto + 1).padStart(2, "0")} / ${totalActos}`;
+  tiempoEl.style.width = (((acto + 1) / totalActos) * 100) + "%";
+
+  const arranca = () => {
+    if (a.ticket) { boletoEl.classList.add("on"); esperar(a.dur || 7000, siguienteActo); return; }
+    if (a.final) { mostrarFinal(); esperar(a.dur || 8000, siguienteActo); return; }
+    if (a.creditos) {
+      document.body.classList.add("sin-barras", "creditos");
+      creditosEl.classList.add("on");
+      const r = creditosEl.querySelector(".rollo");
+      r.style.animation = "none"; void r.offsetWidth; r.style.animation = "";
+      esperar(a.dur || 34000, siguienteActo);
+      return;
+    }
+    if (a.cartelera) {
+      document.body.classList.add("sin-barras", "cartelera");
+      discosEl.classList.add("on");
+      audio.pause(); // para que no se encime con los reproductores de Spotify
+      return;
+    }
+    idxLinea = 0; siguienteLinea();
+  };
+
+  if (a.slate) claqueta(a.slate, a.meta, arranca); else arranca();
+}
+
+function claqueta(tit, meta, cb) {
+  $("#slate-tit").textContent = tit;
+  $("#slate-meta").textContent = meta;
+  slateEl.classList.remove("on"); void slateEl.offsetWidth; slateEl.classList.add("on");
+  esperar(reduce ? 400 : 1900, cb);
+}
+
+function siguienteLinea() {
+  const a = GUION[acto];
+  if (!a || !a.lineas) return;
+  if (idxLinea >= a.lineas.length) { esperar(1800, siguienteActo); return; }
+  const ms = pintarLinea(a.lineas[idxLinea++]);
+  esperar(reduce ? 1200 : ms, siguienteLinea);
+}
+
+function mostrarFinal() {
+  finalEl.classList.add("on");
+  const cont = $("#teamo");
+  cont.innerHTML = "";
+  let n = 0;
+  "Creo que te amo".split(" ").forEach(palabra => {
+    const caja = document.createElement("span");
+    caja.className = "p";
+    palabra.split("").forEach(ch => {
+      const s = document.createElement("span");
+      s.className = "l"; s.textContent = ch;
+      s.style.animationDelay = (0.35 + (n++) * 0.085) + "s";
+      caja.appendChild(s);
+    });
+    cont.appendChild(caja);
+  });
+}
+
+function siguienteActo() {
+  if (acto >= totalActos - 1) return;
+  acto++; correrActo();
+}
+
+// ---- pausa (la función y la música, juntas) ----
+function alternarPausa() {
+  if (!enMarcha || document.body.classList.contains("cartelera")) return;
+  pausado = !pausado;
+  document.body.classList.toggle("pausa", pausado);
+  $("#pl-boton").textContent = pausado ? "▶" : "⏸";
+  if (pausado) {
+    clearTimeout(reloj);
+    restante = Math.max(0, duracion - (performance.now() - inicio));
+    audio.pause();
+  } else {
+    esperar(restante || 600, alTerminar);
+    audio.play().catch(() => {});
+  }
+}
+
+$("#pl-boton").addEventListener("click", e => { e.stopPropagation(); alternarPausa(); });
+$("#escenario").addEventListener("click", alternarPausa);
+window.addEventListener("keydown", e => {
+  if (!enMarcha) return;
+  if (e.key === " ") { e.preventDefault(); alternarPausa(); }
+});
+
+$("#repetir-fijo").addEventListener("click", () => {
+  clearTimeout(reloj);
+  pausado = false;
+  document.body.classList.remove("pausa", "sin-barras");
+  $("#pl-boton").textContent = "⏸";
+  acto = 0;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+  correrActo();
+});
+
+// ---- reproductor ----
+const mmss = s => {
+  if (!isFinite(s)) return "0:00";
+  const m = Math.floor(s / 60), x = Math.floor(s % 60);
+  return m + ":" + String(x).padStart(2, "0");
+};
+audio.addEventListener("loadedmetadata", () => { $("#pl-total").textContent = mmss(audio.duration); });
+audio.addEventListener("timeupdate", () => {
+  $("#pl-actual").textContent = mmss(audio.currentTime);
+  if (audio.duration) $("#pl-prog").style.width = (audio.currentTime / audio.duration * 100) + "%";
+});
+audio.addEventListener("play", () => document.body.classList.remove("audio-parado"));
+audio.addEventListener("pause", () => document.body.classList.add("audio-parado"));
+
+// ---- arranque ----
+$("#empezar").addEventListener("click", () => {
+  // la música arranca con el toque, que es lo que piden los navegadores
+  audio.volume = 0;
+  audio.play().then(() => {
+    let v = 0;
+    const subir = setInterval(() => { v = Math.min(1, v + .05); audio.volume = v; if (v >= 1) clearInterval(subir); }, 90);
+  }).catch(() => {});
+
+  const intro = $("#intro");
+  intro.classList.add("abierto");
+  setTimeout(() => intro.classList.add("fuera"), 60);
+  setTimeout(() => { intro.style.display = "none"; }, 3200);
+
+  const leader = $("#leader"), num = $("#leader-num");
+  setTimeout(() => {
+    const arrancar = () => {
+      leader.classList.remove("on");
+      document.body.classList.add("rodando");
+      enMarcha = true;
+      correrActo();
+    };
+    if (reduce) return arrancar();
+    leader.classList.add("on");
+    let n = 3; num.textContent = n;
+    const t = setInterval(() => {
+      n--;
+      if (n === 0) { clearInterval(t); arrancar(); } else num.textContent = n;
+    }, 1000);
+  }, 2200);
+});
+
+// ---- polvo en el haz del proyector ----
+const cv = $("#polvo"), ctx = cv.getContext("2d");
+let motas = [];
+function medir() {
+  cv.width = innerWidth; cv.height = innerHeight;
+  motas = Array.from({ length: Math.round(innerWidth * innerHeight / 26000) }, () => ({
+    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+    r: Math.random() * 1.6 + .3, vx: (Math.random() - .5) * .22, vy: -(Math.random() * .18 + .04),
+    a: Math.random() * .4 + .08
+  }));
+}
+medir(); addEventListener("resize", medir);
+(function polvear() {
+  requestAnimationFrame(polvear);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  for (const m of motas) {
+    m.x += m.vx; m.y += m.vy;
+    if (m.y < -5) { m.y = cv.height + 5; m.x = Math.random() * cv.width; }
+    if (m.x < -5) m.x = cv.width + 5;
+    if (m.x > cv.width + 5) m.x = -5;
+    ctx.fillStyle = `rgba(255,244,214,${m.a})`;
+    ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2); ctx.fill();
+  }
+})();
+</script>
+</body>
+</html>
