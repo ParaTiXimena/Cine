@@ -270,7 +270,8 @@
 </head>
 <body>
 
-<audio id="audio" src="cancion.mp3" preload="auto" loop></audio>
+<audio id="audio" src="cancion.mp3" preload="auto"></audio>
+<audio id="audio2" src="cancion2.mp3" preload="auto"></audio>
 
 <div id="fondo" class="capa"><div class="campo"></div></div>
 <canvas id="polvo" class="capa"></canvas>
@@ -381,8 +382,8 @@
 <div id="player">
   <div class="caratula"><span class="disco-centro"></span></div>
   <div class="pl-txt">
-    <div class="cancion">préstame un beso</div>
-    <div class="artista">Jorge Cuéllar · sonando ahora</div>
+    <div class="cancion" id="pl-tit">préstame un beso</div>
+    <div class="artista"><span id="pl-art">Jorge Cuéllar</span> · sonando ahora</div>
   </div>
   <button class="pl-boton" id="pl-boton" type="button" title="Pausa">⏸</button>
   <div class="pl-barra">
@@ -484,7 +485,7 @@ const GUION = [
 
 // ===================== motor =====================
 const $ = s => document.querySelector(s);
-const audio = $("#audio");
+const audio = $("#audio"), audio2 = $("#audio2");
 const lineasEl = $("#lineas"), slateEl = $("#slate"), boletoEl = $("#boleto");
 const finalEl = $("#final"), creditosEl = $("#creditos"), discosEl = $("#discos");
 const tiempoEl = $("#tiempo"), contadorEl = $("#contador");
@@ -493,6 +494,70 @@ const totalActos = GUION.length;
 
 let acto = 0, idxLinea = 0, pausado = false, enMarcha = false;
 let reloj = null, alTerminar = () => {}, inicio = 0, duracion = 0, restante = 0;
+
+// --- banda sonora: primero préstame un beso, luego AMOR DE CINE ---
+const PISTAS = [
+  { el: audio,  tit: "préstame un beso", art: "Jorge Cuéllar" },
+  { el: audio2, tit: "AMOR DE CINE",     art: "HUMBE" }
+];
+let pista = 0;
+const sonando = () => PISTAS[pista].el;
+
+// índice del acto donde entra la segunda canción (la escena final)
+const ACTO_FINAL = GUION.findIndex(a => a.slate === "Escena final");
+// cortina (2.2 s) + claqueta 3·2·1 (3 s), lo que suena antes de la primera escena
+const ENTRADA = 5300;
+// factor de lectura: se calcula para que la primera canción dure justo lo que las escenas
+const RITMO = { k: 1 };
+
+function fundir(el, destino, ms, cb) {
+  const paso = 60, saltos = Math.max(1, Math.round(ms / paso));
+  const d = (destino - el.volume) / saltos;
+  let n = 0;
+  const t = setInterval(() => {
+    n++; el.volume = Math.max(0, Math.min(1, el.volume + d));
+    if (n >= saltos) { clearInterval(t); el.volume = destino; if (cb) cb(); }
+  }, paso);
+}
+
+function pintarPista() {
+  $("#pl-tit").textContent = PISTAS[pista].tit;
+  $("#pl-art").textContent = PISTAS[pista].art;
+  $("#pl-total").textContent = mmss(sonando().duration);
+}
+
+function cambiarPista() {
+  if (pista !== 0) return;
+  const vieja = audio;
+  fundir(vieja, 0, 1600, () => { vieja.pause(); vieja.currentTime = 0; });
+  pista = 1;
+  audio2.currentTime = 0; audio2.volume = 0;
+  audio2.play().then(() => fundir(audio2, 1, 2200)).catch(() => {});
+  pintarPista();
+}
+
+// mide cuánto dura cada acto para poder cuadrarlo con la música
+function medirActos(desde, hasta) {
+  let fijo = 0, leible = 0;
+  for (let i = desde; i <= hasta && i < GUION.length; i++) {
+    const a = GUION[i];
+    if (a.slate) fijo += 1600;
+    if (a.lineas) {
+      a.lineas.forEach(l => { leible += duracionDe(typeof l === "string" ? l : l.t); });
+      fijo += 1500;
+    }
+    if (a.ticket || a.final) fijo += a.dur || 7000;
+  }
+  return { fijo, leible };
+}
+
+function calibrar() {
+  if (!isFinite(audio.duration) || ACTO_FINAL < 1) return;
+  const { fijo, leible } = medirActos(0, ACTO_FINAL - 1);
+  const objetivo = audio.duration * 1000 - ENTRADA - 800;
+  // nunca por debajo de 0.85: más rápido que eso ya no se alcanza a leer
+  RITMO.k = Math.max(0.85, Math.min(1.3, (objetivo - fijo) / leible));
+}
 
 function esperar(ms, cb) {
   clearTimeout(reloj);
@@ -540,21 +605,34 @@ function correrActo() {
   contadorEl.textContent = `ESCENA ${String(acto + 1).padStart(2, "0")} / ${totalActos}`;
   tiempoEl.style.width = (((acto + 1) / totalActos) * 100) + "%";
 
+  // la escena final entra con AMOR DE CINE
+  if (acto === ACTO_FINAL) cambiarPista();
+
   const arranca = () => {
     if (a.ticket) { boletoEl.classList.add("on"); esperar(a.dur || 7000, siguienteActo); return; }
     if (a.final) { mostrarFinal(); esperar(a.dur || 8000, siguienteActo); return; }
     if (a.creditos) {
       document.body.classList.add("sin-barras", "creditos");
       creditosEl.classList.add("on");
+      // los créditos duran lo que le quede a la canción, para acabar juntos
+      let dur = a.dur || 34000;
+      const el = sonando();
+      if (isFinite(el.duration)) {
+        const resta = (el.duration - el.currentTime) * 1000 - 1200;
+        dur = Math.max(26000, Math.min(42000, resta));
+      }
       const r = creditosEl.querySelector(".rollo");
-      r.style.animation = "none"; void r.offsetWidth; r.style.animation = "";
-      esperar(a.dur || 34000, siguienteActo);
+      r.style.animation = "none"; void r.offsetWidth;
+      r.style.animation = ""; r.style.animationDuration = dur + "ms";
+      esperar(dur, siguienteActo);
       return;
     }
     if (a.cartelera) {
       document.body.classList.add("sin-barras", "cartelera");
       discosEl.classList.add("on");
-      audio.pause(); // para que no se encime con los reproductores de Spotify
+      // se apaga suave para no encimarse con los reproductores de Spotify
+      const el = sonando();
+      fundir(el, 0, 1800, () => el.pause());
       return;
     }
     idxLinea = 0; siguienteLinea();
@@ -567,14 +645,14 @@ function claqueta(tit, meta, cb) {
   $("#slate-tit").textContent = tit;
   $("#slate-meta").textContent = meta;
   slateEl.classList.remove("on"); void slateEl.offsetWidth; slateEl.classList.add("on");
-  esperar(reduce ? 400 : 1900, cb);
+  esperar(reduce ? 400 : 1600, cb);
 }
 
 function siguienteLinea() {
   const a = GUION[acto];
   if (!a || !a.lineas) return;
-  if (idxLinea >= a.lineas.length) { esperar(1800, siguienteActo); return; }
-  const ms = pintarLinea(a.lineas[idxLinea++]);
+  if (idxLinea >= a.lineas.length) { esperar(1500, siguienteActo); return; }
+  const ms = pintarLinea(a.lineas[idxLinea++]) * RITMO.k;
   esperar(reduce ? 1200 : ms, siguienteLinea);
 }
 
@@ -610,10 +688,10 @@ function alternarPausa() {
   if (pausado) {
     clearTimeout(reloj);
     restante = Math.max(0, duracion - (performance.now() - inicio));
-    audio.pause();
+    sonando().pause();
   } else {
     esperar(restante || 600, alTerminar);
-    audio.play().catch(() => {});
+    sonando().play().catch(() => {});
   }
 }
 
@@ -630,8 +708,11 @@ $("#repetir-fijo").addEventListener("click", () => {
   document.body.classList.remove("pausa", "sin-barras");
   $("#pl-boton").textContent = "⏸";
   acto = 0;
-  audio.currentTime = 0;
+  audio2.pause(); audio2.currentTime = 0;
+  pista = 0; pintarPista();
+  audio.currentTime = 0; audio.volume = 1;
   audio.play().catch(() => {});
+  calibrar();
   correrActo();
 });
 
@@ -641,22 +722,34 @@ const mmss = s => {
   const m = Math.floor(s / 60), x = Math.floor(s % 60);
   return m + ":" + String(x).padStart(2, "0");
 };
-audio.addEventListener("loadedmetadata", () => { $("#pl-total").textContent = mmss(audio.duration); });
-audio.addEventListener("timeupdate", () => {
-  $("#pl-actual").textContent = mmss(audio.currentTime);
-  if (audio.duration) $("#pl-prog").style.width = (audio.currentTime / audio.duration * 100) + "%";
+[audio, audio2].forEach(el => {
+  el.addEventListener("loadedmetadata", () => { if (sonando() === el) $("#pl-total").textContent = mmss(el.duration); });
+  el.addEventListener("timeupdate", () => {
+    if (sonando() !== el) return;
+    $("#pl-actual").textContent = mmss(el.currentTime);
+    if (el.duration) $("#pl-prog").style.width = (el.currentTime / el.duration * 100) + "%";
+  });
+  el.addEventListener("play", () => document.body.classList.remove("audio-parado"));
+  el.addEventListener("pause", () => { if (sonando() === el) document.body.classList.add("audio-parado"); });
 });
-audio.addEventListener("play", () => document.body.classList.remove("audio-parado"));
-audio.addEventListener("pause", () => document.body.classList.add("audio-parado"));
+// si la función se alarga más que la primera canción, entra la segunda sola
+audio.addEventListener("ended", () => { if (pista === 0 && enMarcha) cambiarPista(); });
+// y si se acaba la segunda antes que los créditos, que no quede en silencio
+audio2.addEventListener("ended", () => {
+  if (!document.body.classList.contains("cartelera")) { audio2.currentTime = 0; audio2.play().catch(() => {}); }
+});
 
 // ---- arranque ----
 $("#empezar").addEventListener("click", () => {
   // la música arranca con el toque, que es lo que piden los navegadores
   audio.volume = 0;
-  audio.play().then(() => {
-    let v = 0;
-    const subir = setInterval(() => { v = Math.min(1, v + .05); audio.volume = v; if (v >= 1) clearInterval(subir); }, 90);
-  }).catch(() => {});
+  audio.play().then(() => fundir(audio, 1, 2000)).catch(() => {});
+  audio2.load(); // la deja lista para que entre sin huecos
+
+  // las escenas se ajustan a lo que dure la canción
+  if (isFinite(audio.duration)) calibrar();
+  else audio.addEventListener("loadedmetadata", calibrar, { once: true });
+  pintarPista();
 
   const intro = $("#intro");
   intro.classList.add("abierto");
